@@ -25,13 +25,16 @@ model Shop {
 }
 
 model Survey {
-  id          String    @id @default(cuid())
-  shopId      String
-  shop        Shop      @relation(fields: [shopId], references: [id])
-  customerId  String?
-  responses   Response[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String   @id @default(cuid())
+  shopId       String
+  satisfaction String
+  foundItems   String
+  improvements String
+  createdAt    DateTime @default(now())
+  shop         Shop     @relation(fields: [shopId], references: [id])
+  responses    Response[]
+
+  @@index([shopId])
 }
 
 model Response {
