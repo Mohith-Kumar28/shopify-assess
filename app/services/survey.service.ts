@@ -1,5 +1,4 @@
 import { prisma } from '../lib/prisma';
-import { Response } from '@prisma/client';
 
 export interface CreateSurveyInput {
   shopId: string;
@@ -11,31 +10,23 @@ export interface CreateSurveyInput {
   }[];
 }
 
-interface QuestionStat {
-  question: string;
-  answers: Record<string, number>;
-  total: number;
-}
+
 
 export class SurveyService {
-  static async createSurvey(data: CreateSurveyInput) {
-    const survey = await prisma.survey.create({
-      data: {
-        shop: {
-          connect: {
-            shopId: data.shopId,
-          },
-        },
-        customerId: data.customerId,
-        responses: {
-          create: data.responses,
-        },
+  static async createSurvey(data: { shopId: string; responses: CreateSurveyInput['responses'] }) {
+    const response = await fetch('/api/survey/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      include: {
-        responses: true,
-      },
+      body: JSON.stringify(data),
     });
-    return survey;
+
+    if (!response.ok) {
+      throw new Error('Failed to submit survey');
+    }
+
+    return response.json();
   }
 
   static async getSurveysByShop(shopId: string) {
@@ -55,53 +46,13 @@ export class SurveyService {
     return surveys;
   }
 
-  static async getSurveyStats(shopId: string) {
-    const totalSurveys = await prisma.survey.count({
-      where: {
-        shop: {
-          shopId,
-        },
-      },
-    });
+  static async getSurveyStats(shop: string) {
+    const response = await fetch(`/api/survey/stats?shop=${encodeURIComponent(shop)}`);
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch survey stats');
+    }
 
-    const responses = await prisma.response.findMany({
-      where: {
-        survey: {
-          shop: {
-            shopId,
-          },
-        },
-      },
-      select: {
-        questionId: true,
-        question: true,
-        answer: true,
-      },
-    });
-
-    // Group responses by question
-    const questionStats = responses.reduce((acc: Record<string, QuestionStat>, curr: Pick<Response, 'questionId' | 'question' | 'answer'>) => {
-      if (!acc[curr.questionId]) {
-        acc[curr.questionId] = {
-          question: curr.question,
-          answers: {},
-          total: 0,
-        };
-      }
-      
-      if (!acc[curr.questionId].answers[curr.answer]) {
-        acc[curr.questionId].answers[curr.answer] = 0;
-      }
-      
-      acc[curr.questionId].answers[curr.answer]++;
-      acc[curr.questionId].total++;
-      
-      return acc;
-    }, {});
-
-    return {
-      totalSurveys,
-      questionStats,
-    };
+    return response.json();
   }
 } 

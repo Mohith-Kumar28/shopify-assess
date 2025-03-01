@@ -4,25 +4,21 @@ import { useEffect, useState } from 'react';
 import Dashboard from '../components/Dashboard';
 import { SurveyService } from '../services/survey.service';
 
-interface PageProps {
-  searchParams: {
-    shop?: string;
-  };
-}
-
 interface SurveyStats {
   totalSurveys: number;
-  questionStats: Record<string, {
+  totalResponses: number;
+  recentResponses: Array<{
+    id: string;
     question: string;
-    answers: Record<string, number>;
-    total: number;
+    answer: string;
+    createdAt: string;
   }>;
 }
 
-export default function DashboardPage({ searchParams }: PageProps) {
+export default function DashboardPage() {
   const [stats, setStats] = useState<SurveyStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const { shop } = searchParams;
+  const shop = new URLSearchParams(window.location.search).get('shop');
 
   useEffect(() => {
     async function loadStats() {

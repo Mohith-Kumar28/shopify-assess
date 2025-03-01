@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { SurveyService } from '../../../services/survey.service';
+import { prisma } from '../../../lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,9 +10,32 @@ export async function POST(request: NextRequest) {
       return new Response('Invalid request body', { status: 400 });
     }
 
-    const survey = await SurveyService.createSurvey({
-      shopId,
-      responses,
+    const shop = await prisma.shop.findUnique({
+      where: { shopId },
+    });
+
+    if (!shop) {
+      return new Response('Shop not found', { status: 404 });
+    }
+
+    const survey = await prisma.survey.create({
+      data: {
+        shop: {
+          connect: {
+            id: shop.id,
+          },
+        },
+        responses: {
+          create: responses.map(response => ({
+            questionId: response.questionId,
+            question: response.question,
+            answer: response.answer,
+          })),
+        },
+      },
+      include: {
+        responses: true,
+      },
     });
 
     return Response.json(survey);

@@ -1,55 +1,29 @@
-import React from 'react';
-import {
-  Page,
-  Layout,
-  Card,
-  DataTable,
-  Button,
-  ButtonGroup,
-  Text,
-  SkeletonBodyText,
-  Box,
-} from '@shopify/polaris';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+'use client';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { Page, Layout, Card, Text, SkeletonBodyText } from '@shopify/polaris';
 
 interface DashboardProps {
   stats: {
     totalSurveys: number;
-    questionStats: Record<string, {
+    totalResponses: number;
+    recentResponses: Array<{
+      id: string;
       question: string;
-      answers: Record<string, number>;
-      total: number;
+      answer: string;
+      createdAt: string;
     }>;
-  };
-  isLoading?: boolean;
+  } | null;
+  isLoading: boolean;
 }
 
 export default function Dashboard({ stats, isLoading }: DashboardProps) {
   if (isLoading) {
     return (
-      <Page title="Survey Dashboard">
+      <Page title="Dashboard">
         <Layout>
           <Layout.Section>
             <Card>
-              <SkeletonBodyText lines={10} />
+              <SkeletonBodyText lines={5} />
             </Card>
           </Layout.Section>
         </Layout>
@@ -57,100 +31,63 @@ export default function Dashboard({ stats, isLoading }: DashboardProps) {
     );
   }
 
-  const getChartData = (questionId: string) => {
-    const questionData = stats.questionStats[questionId];
-    const labels = Object.keys(questionData.answers);
-    const data = labels.map(label => questionData.answers[label]);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: questionData.question,
-          data,
-          backgroundColor: 'rgba(0, 128, 96, 0.5)',
-          borderColor: 'rgb(0, 128, 96)',
-          borderWidth: 1,
-        },
-      ],
-    };
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1,
-        },
-      },
-    },
-  };
-
-  const getResponseTable = (questionId: string) => {
-    const questionData = stats.questionStats[questionId];
-    const rows = Object.entries(questionData.answers).map(([answer, count]) => [
-      answer,
-      count,
-      `${((count / questionData.total) * 100).toFixed(1)}%`,
-    ]);
-
+  if (!stats) {
     return (
-      <DataTable
-        columnContentTypes={['text', 'numeric', 'numeric']}
-        headings={['Response', 'Count', 'Percentage']}
-        rows={rows}
-      />
+      <Page title="Dashboard">
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <Text as="p">No survey data available.</Text>
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </Page>
     );
-  };
+  }
 
   return (
     <Page title="Survey Dashboard">
       <Layout>
         <Layout.Section>
           <Card>
-            <Box padding="400">
-              <Text variant="headingLg" as="h3">
-                Total Surveys: {stats.totalSurveys}
+            <div style={{ padding: '20px' }}>
+              <Text variant="headingMd" as="h2">
+                Survey Statistics
               </Text>
-            </Box>
+              <div style={{ marginTop: '1rem' }}>
+                <Text as="p">Total Surveys: {stats.totalSurveys}</Text>
+                <Text as="p">Total Responses: {stats.totalResponses}</Text>
+              </div>
+            </div>
           </Card>
         </Layout.Section>
 
-        {Object.keys(stats.questionStats).map((questionId) => (
-          <Layout.Section key={questionId}>
-            <Card>
-              <Box padding="400">
-                <Text variant="headingMd" as="h3">
-                  {stats.questionStats[questionId].question}
-                </Text>
-                <Box paddingBlock="400">
-                  <div style={{ height: '300px' }}>
-                    <Bar data={getChartData(questionId)} options={chartOptions} />
-                  </div>
-                </Box>
-                <Box paddingBlockStart="400">
-                  {getResponseTable(questionId)}
-                </Box>
-              </Box>
-            </Card>
-          </Layout.Section>
-        ))}
-
         <Layout.Section>
           <Card>
-            <Box padding="400">
-              <ButtonGroup>
-                <Button variant="primary">Export Data</Button>
-                <Button>Print Report</Button>
-              </ButtonGroup>
-            </Box>
+            <div style={{ padding: '20px' }}>
+              <Text variant="headingMd" as="h2">
+                Recent Responses
+              </Text>
+              <div style={{ marginTop: '1rem' }}>
+                {stats.recentResponses.length > 0 ? (
+                  <ul style={{ listStyle: 'none', padding: 0 }}>
+                    {stats.recentResponses.map((response) => (
+                      <li key={response.id} style={{ marginBottom: '1rem' }}>
+                        <Text as="p" fontWeight="bold">
+                          {response.question}
+                        </Text>
+                        <Text as="p">Answer: {response.answer}</Text>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {new Date(response.createdAt).toLocaleDateString()}
+                        </Text>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Text as="p">No recent responses.</Text>
+                )}
+              </div>
+            </div>
           </Card>
         </Layout.Section>
       </Layout>
