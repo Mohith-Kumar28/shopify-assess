@@ -68,11 +68,12 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       }
     });
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     console.error('Failed to submit survey:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ 
       error: 'Internal server error', 
-      details: error?.message || 'Unknown error'
+      details: errorMessage
     }), { 
       status: 500,
       headers: {
