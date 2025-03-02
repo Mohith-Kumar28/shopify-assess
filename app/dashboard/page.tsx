@@ -1,31 +1,41 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Dashboard from '../components/Dashboard';
 import { SurveyService } from '../services/survey.service';
 
 interface SurveyStats {
   totalSurveys: number;
   totalResponses: number;
+  satisfactionDistribution: Record<string, number>;
+  foundItemsDistribution: Record<string, number>;
   recentResponses: Array<{
     id: string;
-    question: string;
-    answer: string;
+    satisfaction: string;
+    foundItems: string;
+    improvements: string;
     createdAt: string;
   }>;
+  improvementThemes: Record<string, number>;
 }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<SurveyStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const shop = new URLSearchParams(window.location.search).get('shop');
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const shop = searchParams.get('shop');
 
   useEffect(() => {
-    async function loadStats() {
-      if (!shop) return;
+    if (!shop) {
+      router.push('/');
+      return;
+    }
 
+    async function loadStats() {
       try {
-        const data = await SurveyService.getSurveyStats(shop);
+        const data = await SurveyService.getSurveyStats(shop as string);
         setStats(data);
       } catch (error) {
         console.error('Failed to load stats:', error);
@@ -35,10 +45,9 @@ export default function DashboardPage() {
     }
 
     loadStats();
-  }, [shop]);
+  }, [shop, router]);
 
   if (!shop) {
-    window.location.href = '/';
     return null;
   }
 
